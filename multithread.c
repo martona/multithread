@@ -194,7 +194,6 @@ u32 mt_run_threads(mt_ctx* ctx, mt_worker_thread_t worker, ptr param) {
 }
 
 #if _MULTITHREAD_DEBUG
-
 void __stdcall testworker(ptr param) {
     mt_ctx *ctx = (mt_ctx*)param;
     u64 now, freq;
@@ -203,51 +202,6 @@ void __stdcall testworker(ptr param) {
     now = now * 10000000 / freq;
     printf("%llu\n", now);
 }
-
-typedef struct {
-    HANDLE event_ready;
-    HANDLE event_go;
-    HANDLE thread;
-} workerparam;
-
-DWORD threadFn(void* param) {
-    workerparam* p = (workerparam*)param;
-    SetEvent(p->event_ready);
-    WaitForSingleObject(p->event_go, INFINITE);
-    u64 now, freq;
-    QueryPerformanceCounter((LARGE_INTEGER*)&now);
-    QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
-    now = now * 10000000 / freq;
-    printf("%llu\n", now);
-    return 0;
-}
-
-// int main() {
-//     dump_cpu_info();
-//     mt_ctx* ctx = mt_init_ctx(24);
-//     if (ctx) {
-//         #define NUMT 48
-//         workerparam params[NUMT];
-//         HANDLE threads[NUMT];
-//         HANDLE ready[NUMT];
-//         HANDLE single_go = CreateEventA(0, 1, 0, 0);
-//         for (int i=0; i<NUMT; i++) {
-//             ready[i] = params[i].event_ready = CreateEvent(0, 0, 0, 0);
-//             params[i].event_go = single_go;
-//             threads[i] = params[i].thread = CreateThread(0, 0, threadFn, &params[i], 0, 0);
-//         }
-//         WaitForMultipleObjects(NUMT, ready, 1, INFINITE);
-//         SetEvent(single_go);
-//         WaitForMultipleObjects(NUMT, threads, 1, INFINITE);
-//         for (int i=0; i<NUMT; i++) {
-//             CloseHandle(ready[i]);
-//             CloseHandle(threads[i]);
-//         }
-//         CloseHandle(single_go);
-//         mt_deinit_ctx(ctx);
-//     }
-//     return 0;
-// }
 
 int main() {
     mt_ctx* ctx = mt_init_ctx(0);
@@ -259,5 +213,4 @@ int main() {
     }
     return 0;
 }
-
 #endif
