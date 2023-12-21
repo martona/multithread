@@ -25,7 +25,7 @@ typedef struct {
 
 #define mt_ERROR_INSUFFICIENT_BUFFER   122
 
-int get_cpu_threads(mt_ctx* ctx) {
+static inline int get_cpu_threads(mt_ctx* ctx) {
     i32 retlen          = 0;
     u32 logical_procs   = 0;
     u32 processor_cores = 0;
@@ -79,7 +79,7 @@ typedef struct {
     u32         size;
 } mt_CallbackEnvironment;
 
-static u32 mt_InitializeThreadpoolEnvironment(void* p) {
+static inline u32 mt_InitializeThreadpoolEnvironment(void* p) {
     // since this came from GlobalAlloc(GPTR,...) it's already zeroed
     mt_CallbackEnvironment* e       = (mt_CallbackEnvironment*)p;
     e->version                      = 3;
@@ -100,6 +100,7 @@ mt_ctx* mt_init_ctx(u32 num_threads) {
             GlobalAlloc_t GlobalAlloc = (GlobalAlloc_t)GetProcAddress(kernel32, "GlobalAlloc");
             mt_ctx* ctx = GlobalAlloc(mt_GPTR, sizeof(mt_ctx));
             if (ctx) {
+                ctx->mt_run_threads                 = mt_run_threads;
                 ctx->kernel32                       = kernel32;
                 ctx->GlobalAlloc                    = GlobalAlloc;
                 ctx->GetProcAddress                 = GetProcAddress;

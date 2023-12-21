@@ -18,10 +18,14 @@ typedef void (__stdcall *mt_worker_thread_t)(ptr);
 
 #define mt_GPTR 0x40
 
-typedef ptr (*LoadLibraryA_t)(i8*);
-typedef ptr (*FreeLibrary_t)(ptr);
-typedef ptr (*GlobalAlloc_t)(u32, u32);
-typedef u32 (*GlobalFree_t)(ptr);
+#ifndef _BASIC_KERNEL_DEFINED
+#define _BASIC_KERNEL_DEFINED
+typedef ptr (*LoadLibraryA_t)(char *name);
+typedef void (*FreeLibrary_t)(ptr modulehandle);
+typedef ptr (*GlobalAlloc_t)(u32 flags, u32 size);
+typedef u32 (*GlobalFree_t)(ptr ptr);
+#endif
+
 typedef ptr (*CreateEventA_t)(ptr, u32, u32, i8*);
 typedef u32 (*CloseHandle_t)(ptr);
 typedef u32 (*SetEvent_t)(ptr);
@@ -52,7 +56,13 @@ typedef u32 (*QueryPerformanceFrequency_t)(ptr);
 typedef ptr (*GetProcAddress_t)(ptr, i8*);
 #endif
 
-typedef struct {
+typedef struct _mt_ctx mt_ctx;
+typedef u32 (*mt_run_threads_t)(mt_ctx*, mt_worker_thread_t, ptr);
+mt_ctx* mt_init_ctx(u32 num_threads);
+void mt_deinit_ctx(mt_ctx* ctx);
+u32 mt_run_threads(mt_ctx* ctx, mt_worker_thread_t worker, ptr param);
+
+typedef struct _mt_ctx {
     ptr kernel32;
     GetProcAddress_t                    GetProcAddress;
     LoadLibraryA_t                      LoadLibraryA;
@@ -85,8 +95,5 @@ typedef struct {
     ptr                                 cbe;
     ptr                                 pool;
     u32                                 num_threads;
+    mt_run_threads_t                    mt_run_threads;
 } mt_ctx;
-
-mt_ctx* mt_init_ctx(u32 num_threads);
-void mt_deinit_ctx(mt_ctx* ctx);
-u32 mt_run_threads(mt_ctx* ctx, mt_worker_thread_t worker, ptr param);
