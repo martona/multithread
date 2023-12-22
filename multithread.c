@@ -25,7 +25,7 @@ typedef struct {
 
 #define mt_ERROR_INSUFFICIENT_BUFFER   122
 
-static inline int get_cpu_threads(mt_ctx* ctx) {
+int get_cpu_threads(mt_ctx* ctx) {
     i32 retlen          = 0;
     u32 logical_procs   = 0;
     u32 processor_cores = 0;
