@@ -25,7 +25,7 @@ typedef struct {
 
 #define mt_ERROR_INSUFFICIENT_BUFFER   122
 
-int get_cpu_threads(mt_ctx* ctx) {
+int mt_get_cputhreads(mt_ctx* ctx) {
     i32 retlen          = 0;
     u32 logical_procs   = 0;
     u32 processor_cores = 0;
@@ -62,7 +62,7 @@ int get_cpu_threads(mt_ctx* ctx) {
 }
 
 //-------------------------------------------------------------------------------------
-// data types required for mt_init_ctx
+// data types required for mt_init
 
 #define mt_TP_CALLBACK_PRIORITY_NORMAL 1
 
@@ -91,58 +91,46 @@ static inline u32 mt_InitializeThreadpoolEnvironment(void* p) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // context to be supplied to all other calls
 
-mt_ctx* mt_init_ctx(u32 num_threads) {
-    ptr kernel32 = get_kernel32_modulehandle();
+mt_ctx* mt_init(u32 num_threads) {
+    ptr kernel32 = gpa_getkernel32();
     if (kernel32) {
-        GetProcAddress_t GetProcAddress = (GetProcAddress_t)get_getprocaddress(kernel32);
+        GetProcAddress_t GetProcAddress = (GetProcAddress_t)gpa_getgetprocaddress(kernel32);
         GlobalFree_t GlobalFree = (GlobalFree_t)GetProcAddress(kernel32, "GlobalFree");
-        if (GetProcAddress) {
-            GlobalAlloc_t GlobalAlloc = (GlobalAlloc_t)GetProcAddress(kernel32, "GlobalAlloc");
-            mt_ctx* ctx = GlobalAlloc(mt_GPTR, sizeof(mt_ctx));
-            if (ctx) {
-                ctx->mt_run_threads                 = mt_run_threads;
-                ctx->kernel32                       = kernel32;
-                ctx->GlobalAlloc                    = GlobalAlloc;
-                ctx->GetProcAddress                 = GetProcAddress;
-                ctx->GlobalFree                     = GlobalFree;
-                ctx->LoadLibraryA                   = (LoadLibraryA_t)                  GetProcAddress(kernel32, "LoadLibraryA");
-                ctx->FreeLibrary                    = (FreeLibrary_t)                   GetProcAddress(kernel32, "FreeLibrary");
-                ctx->CreateEventA                   = (CreateEventA_t)                  GetProcAddress(kernel32, "CreateEventA");
-                ctx->CloseHandle                    = (CloseHandle_t)                   GetProcAddress(kernel32, "CloseHandle");
-                ctx->SetEvent                       = (SetEvent_t)                      GetProcAddress(kernel32, "SetEvent");
-                ctx->ResetEvent                     = (ResetEvent_t)                    GetProcAddress(kernel32, "ResetEvent");
-                ctx->WaitForSingleObject            = (WaitForSingleObject_t)           GetProcAddress(kernel32, "WaitForSingleObject");
-                ctx->WaitForMultipleObjects         = (WaitForMultipleObjects_t)        GetProcAddress(kernel32, "WaitForMultipleObjects");
-                ctx->InitializeThreadpoolEnvironment= mt_InitializeThreadpoolEnvironment;
-                ctx->CreateThreadpool               = (CreateThreadpool_t)              GetProcAddress(kernel32, "CreateThreadpool");
-                ctx->SetThreadpoolThreadMaximum     = (SetThreadpoolThreadMaximum_t)    GetProcAddress(kernel32, "SetThreadpoolThreadMaximum");
-                ctx->SetThreadpoolThreadMinimum     = (SetThreadpoolThreadMinimum_t)    GetProcAddress(kernel32, "SetThreadpoolThreadMinimum");
-                ctx->CreateThreadpoolWait           = (CreateThreadpoolWait_t)          GetProcAddress(kernel32, "CreateThreadpoolWait");
-                ctx->CreateThreadpoolWork           = (CreateThreadpoolWork_t)          GetProcAddress(kernel32, "CreateThreadpoolWork");
-                ctx->SetThreadpoolWait              = (SetThreadpoolWait_t)             GetProcAddress(kernel32, "SetThreadpoolWait");
-                ctx->SubmitThreadpoolWork           = (SubmitThreadpoolWork_t)          GetProcAddress(kernel32, "SubmitThreadpoolWork");
-                ctx->WaitForThreadpoolWorkCallbacks = (WaitForThreadpoolWorkCallbacks_t)GetProcAddress(kernel32, "WaitForThreadpoolWorkCallbacks");
-                ctx->WaitForThreadpoolWaitCallbacks = (WaitForThreadpoolWaitCallbacks_t)GetProcAddress(kernel32, "WaitForThreadpoolWaitCallbacks");
-                ctx->CloseThreadpoolWait            = (CloseThreadpoolWait_t)           GetProcAddress(kernel32, "CloseThreadpoolWait");
-                ctx->CloseThreadpoolWork            = (CloseThreadpoolWork_t)           GetProcAddress(kernel32, "CloseThreadpoolWork");
-                ctx->CloseThreadpool                = (CloseThreadpool_t)               GetProcAddress(kernel32, "CloseThreadpool");
-                ctx->GetLogicalProcessorInformation = (GetLogicalProcessorInformation_t)GetProcAddress(kernel32, "GetLogicalProcessorInformation");
-                ctx->GetLastError                   = (GetLastError_t)                  GetProcAddress(kernel32, "GetLastError");
-                ctx->QueryPerformanceCounter        = (QueryPerformanceCounter_t)       GetProcAddress(kernel32, "QueryPerformanceCounter");
-                ctx->QueryPerformanceFrequency      = (QueryPerformanceFrequency_t)     GetProcAddress(kernel32, "QueryPerformanceFrequency");
-                ctx->cbe                            = GlobalAlloc(mt_GPTR, sizeof(mt_CallbackEnvironment));
-                if (ctx->cbe) {
-                    ctx->InitializeThreadpoolEnvironment(ctx->cbe);
-                    ctx->pool = ctx->CreateThreadpool(0);
-                    if (ctx->pool) {
-                        ctx->num_threads = num_threads ? num_threads : get_cpu_threads(ctx);
-                        ctx->SetThreadpoolThreadMaximum(ctx->pool, ctx->num_threads);
-                        ctx->SetThreadpoolThreadMinimum(ctx->pool, ctx->num_threads);
-                        ((mt_CallbackEnvironment*)(ctx->cbe))->pool = ctx->pool;
-                        return ctx;
-                    }
-                    ctx->GlobalFree(ctx->cbe);
+        GlobalAlloc_t GlobalAlloc = (GlobalAlloc_t)GetProcAddress(kernel32, "GlobalAlloc");
+        mt_ctx* ctx = GlobalAlloc(mt_GPTR, sizeof(mt_ctx));
+        if (ctx) {
+            ctx->mt_run                         = mt_run;
+            ctx->kernel32                       = kernel32;
+            ctx->GlobalAlloc                    = GlobalAlloc;
+            ctx->GetProcAddress                 = GetProcAddress;
+            ctx->GlobalFree                     = GlobalFree;
+            ctx->LoadLibraryA                   = (LoadLibraryA_t)                  GetProcAddress(kernel32, "LoadLibraryA");
+            ctx->FreeLibrary                    = (FreeLibrary_t)                   GetProcAddress(kernel32, "FreeLibrary");
+            ctx->InitializeThreadpoolEnvironment= mt_InitializeThreadpoolEnvironment;
+            ctx->CreateThreadpool               = (CreateThreadpool_t)              GetProcAddress(kernel32, "CreateThreadpool");
+            ctx->SetThreadpoolThreadMaximum     = (SetThreadpoolThreadMaximum_t)    GetProcAddress(kernel32, "SetThreadpoolThreadMaximum");
+            ctx->SetThreadpoolThreadMinimum     = (SetThreadpoolThreadMinimum_t)    GetProcAddress(kernel32, "SetThreadpoolThreadMinimum");
+            ctx->CreateThreadpoolWork           = (CreateThreadpoolWork_t)          GetProcAddress(kernel32, "CreateThreadpoolWork");
+            ctx->SubmitThreadpoolWork           = (SubmitThreadpoolWork_t)          GetProcAddress(kernel32, "SubmitThreadpoolWork");
+            ctx->WaitForThreadpoolWorkCallbacks = (WaitForThreadpoolWorkCallbacks_t)GetProcAddress(kernel32, "WaitForThreadpoolWorkCallbacks");
+            ctx->CloseThreadpoolWork            = (CloseThreadpoolWork_t)           GetProcAddress(kernel32, "CloseThreadpoolWork");
+            ctx->CloseThreadpool                = (CloseThreadpool_t)               GetProcAddress(kernel32, "CloseThreadpool");
+            ctx->GetLogicalProcessorInformation = (GetLogicalProcessorInformation_t)GetProcAddress(kernel32, "GetLogicalProcessorInformation");
+            ctx->GetLastError                   = (GetLastError_t)                  GetProcAddress(kernel32, "GetLastError");
+            ctx->QueryPerformanceCounter        = (QueryPerformanceCounter_t)       GetProcAddress(kernel32, "QueryPerformanceCounter");
+            ctx->QueryPerformanceFrequency      = (QueryPerformanceFrequency_t)     GetProcAddress(kernel32, "QueryPerformanceFrequency");
+            ctx->cbe                            = GlobalAlloc(mt_GPTR, sizeof(mt_CallbackEnvironment));
+            if (ctx->cbe) {
+                ctx->InitializeThreadpoolEnvironment(ctx->cbe);
+                ctx->pool = ctx->CreateThreadpool(0);
+                if (ctx->pool) {
+                    ctx->num_threads = num_threads ? num_threads : mt_get_cputhreads(ctx);
+                    ctx->SetThreadpoolThreadMaximum(ctx->pool, ctx->num_threads);
+                    ctx->SetThreadpoolThreadMinimum(ctx->pool, ctx->num_threads);
+                    ((mt_CallbackEnvironment*)(ctx->cbe))->pool = ctx->pool;
+                    return ctx;
                 }
+                ctx->GlobalFree(ctx->cbe);
             }
             GlobalFree(ctx);
         }
@@ -153,7 +141,7 @@ mt_ctx* mt_init_ctx(u32 num_threads) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // free a context and all associated resources
 
-void mt_deinit_ctx(mt_ctx* ctx) {
+void mt_deinit(mt_ctx* ctx) {
     if (ctx) {
         ctx->CloseThreadpool(ctx->pool);
         ctx->GlobalFree(ctx);
@@ -161,14 +149,16 @@ void mt_deinit_ctx(mt_ctx* ctx) {
 }
 
 //-------------------------------------------------------------------------------------
-// data types required for mt_run_threads
+// data type required for mt_run
 
+// outer worker thread paramters
 typedef struct {
-    mt_ctx* ctx;
-    mt_worker_thread_t worker_thread;
-    ptr param;
+    mt_ctx* ctx;                // the context
+    mt_worker_t worker_thread;  // the inner worker thread
+    ptr param;                  // the parameter to pass on
 } mt_thread_ctx;
 
+// worker wrapper for the simpler client thread
 static void __stdcall mt_work_callback(ptr instance, mt_thread_ctx* ctx, ptr work) {
     ctx->worker_thread(ctx->param);
 }
@@ -176,21 +166,25 @@ static void __stdcall mt_work_callback(ptr instance, mt_thread_ctx* ctx, ptr wor
 ///////////////////////////////////////////////////////////////////////////////////////
 // run threads with supplied parameters, return when all are done
 
-u32 mt_run_threads(mt_ctx* ctx, mt_worker_thread_t worker, ptr param) {
+u32 mt_run(mt_ctx* ctx, mt_worker_t worker, ptr param) {
     if (ctx) {
-        mt_thread_ctx t;
-        t.ctx           = ctx;
-        t.worker_thread = worker;
-        t.param         = param;
+        //package input into a struct for the callbacks
+        mt_thread_ctx t = {ctx, worker, param};
+        //create a work item for the thread pool
         ptr work = ctx->CreateThreadpoolWork(mt_work_callback, &t, ctx->cbe);
         if (work) {
+            //submit it as many times as we have threads
             for (u32 i=0; i<ctx->num_threads; i++)
                 ctx->SubmitThreadpoolWork(work);
+            //at this point they're all running, so wait for them to finish
             ctx->WaitForThreadpoolWorkCallbacks(work, 0);
+            //close the work object
             ctx->CloseThreadpoolWork(work);
+            //succ!
             return 1;
         }
     }
+    //no succ!
     return 0;
 }
 
@@ -205,12 +199,12 @@ void __stdcall testworker(ptr param) {
 }
 
 int main() {
-    mt_ctx* ctx = mt_init_ctx(0);
+    mt_ctx* ctx = mt_init(0);
     if (ctx) {
         for (int i=0; i<5; i++) {
-            mt_run_threads(ctx, testworker, ctx);
+            mt_run(ctx, testworker, ctx);
         }
-        mt_deinit_ctx(ctx);
+        mt_deinit(ctx);
     }
     return 0;
 }

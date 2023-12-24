@@ -14,8 +14,6 @@ typedef void*               ptr;
 typedef unsigned short      wchar;
 #endif
 
-typedef void (__stdcall *mt_worker_thread_t)(ptr);
-
 #define mt_GPTR 0x40
 
 #ifndef _BASIC_KERNEL_DEFINED
@@ -26,26 +24,13 @@ typedef ptr (*GlobalAlloc_t)(u32 flags, u32 size);
 typedef u32 (*GlobalFree_t)(ptr ptr);
 #endif
 
-typedef ptr (*CreateEventA_t)(ptr, u32, u32, i8*);
-typedef u32 (*CloseHandle_t)(ptr);
-typedef u32 (*SetEvent_t)(ptr);
-typedef u32 (*ResetEvent_t)(ptr);
-typedef u32 (*WaitForSingleObject_t)(ptr, u32);
-typedef u32 (*WaitForMultipleObjects_t)(u32, ptr, u32, u32);
-typedef ptr (*CreateThread_t)(ptr, u32, ptr, ptr, u32, ptr);
-typedef u32 (*ExitThread_t)(u32);
-typedef u32 (*Sleep_t)(u32);
 typedef u32 (*InitializeThreadpoolEnvironment_t)(ptr);
 typedef ptr (*CreateThreadpool_t)(ptr);
 typedef u32 (*SetThreadpoolThreadMaximum_t)(ptr, u32);
 typedef u32 (*SetThreadpoolThreadMinimum_t)(ptr, u32);
 typedef ptr (*CreateThreadpoolWork_t)(ptr, ptr, ptr);
 typedef u32 (*SubmitThreadpoolWork_t)(ptr);
-typedef ptr (*CreateThreadpoolWait_t)(ptr, ptr, ptr);
-typedef u32 (*SetThreadpoolWait_t)(ptr, ptr, ptr);
 typedef u32 (*WaitForThreadpoolWorkCallbacks_t)(ptr, u32);
-typedef u32 (*WaitForThreadpoolWaitCallbacks_t)(ptr, u32);
-typedef u32 (*CloseThreadpoolWait_t)(ptr);
 typedef u32 (*CloseThreadpoolWork_t)(ptr);
 typedef u32 (*CloseThreadpool_t)(ptr);
 typedef u32 (*GetLogicalProcessorInformation_t)(ptr, ptr);
@@ -56,12 +41,16 @@ typedef u32 (*QueryPerformanceFrequency_t)(ptr);
 typedef ptr (*GetProcAddress_t)(ptr, i8*);
 #endif
 
+// define ptr types if someone's only including the .h
 typedef struct _mt_ctx mt_ctx;
-typedef u32 (*mt_run_threads_t)(mt_ctx*, mt_worker_thread_t, ptr);
-mt_ctx* mt_init_ctx(u32 num_threads);
-void mt_deinit_ctx(mt_ctx* ctx);
-u32 mt_run_threads(mt_ctx* ctx, mt_worker_thread_t worker, ptr param);
+typedef void (__stdcall *mt_worker_t)(ptr);
+typedef u32 (*mt_run_t)(mt_ctx*, mt_worker_t, ptr);
+mt_ctx* mt_init(u32 num_threads);
+void mt_deinit(mt_ctx* ctx);
+u32 mt_run(mt_ctx* ctx, mt_worker_t worker, ptr param);
 
+// the bigol' context structure that holds function pointers
+// as well as the thread pool state
 typedef struct _mt_ctx {
     ptr kernel32;
     GetProcAddress_t                    GetProcAddress;
@@ -69,23 +58,13 @@ typedef struct _mt_ctx {
     FreeLibrary_t                       FreeLibrary;
     GlobalAlloc_t                       GlobalAlloc;
     GlobalFree_t                        GlobalFree;
-    CreateEventA_t                      CreateEventA;
-    CloseHandle_t                       CloseHandle;
-    SetEvent_t                          SetEvent;
-    ResetEvent_t                        ResetEvent;
-    WaitForSingleObject_t               WaitForSingleObject;
-    WaitForMultipleObjects_t            WaitForMultipleObjects;
     InitializeThreadpoolEnvironment_t   InitializeThreadpoolEnvironment;
     CreateThreadpool_t                  CreateThreadpool;
     SetThreadpoolThreadMaximum_t        SetThreadpoolThreadMaximum;
     SetThreadpoolThreadMinimum_t        SetThreadpoolThreadMinimum;
     CreateThreadpoolWork_t              CreateThreadpoolWork;
     SubmitThreadpoolWork_t              SubmitThreadpoolWork;
-    CreateThreadpoolWait_t              CreateThreadpoolWait;
-    SetThreadpoolWait_t                 SetThreadpoolWait;
-    WaitForThreadpoolWaitCallbacks_t    WaitForThreadpoolWaitCallbacks;
     WaitForThreadpoolWorkCallbacks_t    WaitForThreadpoolWorkCallbacks;
-    CloseThreadpoolWait_t               CloseThreadpoolWait;
     CloseThreadpoolWork_t               CloseThreadpoolWork;
     CloseThreadpool_t                   CloseThreadpool;
     GetLogicalProcessorInformation_t    GetLogicalProcessorInformation;
@@ -95,5 +74,5 @@ typedef struct _mt_ctx {
     ptr                                 cbe;
     ptr                                 pool;
     u32                                 num_threads;
-    mt_run_threads_t                    mt_run_threads;
+    mt_run_t                            mt_run;
 } mt_ctx;
