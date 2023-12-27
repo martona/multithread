@@ -1,3 +1,9 @@
+/*
+    see readme.md for some (thin) details
+    (C) 2023 https://github.com/martona/multithread
+    MIT License
+*/
+
 #if defined(_MULTITHREAD_MSPOOL_IMPL)
 #include "multithread.h"
 #include "submodules/getprocaddress/getprocaddress.c"

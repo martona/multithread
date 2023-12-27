@@ -1,3 +1,9 @@
+/*
+    see readme.md for some (thin) details
+    (C) 2023 https://github.com/martona/multithread
+    MIT License
+*/
+
 #include "multithread.h"
 #include "submodules/getprocaddress/getprocaddress.c"
 #define _MULTITHREAD_DEBUG 0

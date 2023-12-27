@@ -1,3 +1,9 @@
+/*
+    see readme.md for some (thin) details
+    (C) 2023 https://github.com/martona/multithread
+    MIT License
+*/
+
 #pragma once
 
 #if !defined(_BASIC_TYPES_DEFINED)

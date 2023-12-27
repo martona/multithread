@@ -119,7 +119,7 @@ u32 mt_run(mt_ctx* ctx, mt_client_worker_t worker, ptr param) {
 }
 
 #if _MULTITHREAD_DEBUG
-void __stdcall testworker(ptr param) {
+void __stdcall testworker(ptr param, i32 thread_idx) {
     mt_ctx *ctx = (mt_ctx*)param;
     u64 now, freq;
     ctx->QueryPerformanceCounter(&now);
