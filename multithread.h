@@ -15,6 +15,7 @@ typedef unsigned short      wchar;
 #endif
 
 #define mt_GPTR 0x40
+#define mt_WAIT_OBJECT_0 0x00000000L
 
 #ifndef _BASIC_KERNEL_DEFINED
 #define _BASIC_KERNEL_DEFINED
@@ -37,17 +38,26 @@ typedef u32 (*GetLogicalProcessorInformation_t)(ptr, ptr);
 typedef u32 (*GetLastError_t)(void);
 typedef u32 (*QueryPerformanceCounter_t)(ptr);
 typedef u32 (*QueryPerformanceFrequency_t)(ptr);
+typedef ptr (*CreateThread_t)(ptr, u32, ptr, ptr, u32, ptr);
+typedef u32 (*WaitForSingleObject_t)(ptr, u32);
+typedef ptr (*CreateEventA_t)(ptr, u32, u32, ptr);
+typedef u32 (*SetEvent_t)(ptr);
+typedef u32 (*ResetEvent_t)(ptr);
+typedef u32 (*CloseHandle_t)(ptr);
+typedef u32 (*WaitForMultipleObjects_t)(u32, ptr, u32, u32);
+
 #if !defined(GetProcAddress_t_defined)
 typedef ptr (*GetProcAddress_t)(ptr, i8*);
 #endif
 
 // define ptr types if someone's only including the .h
 typedef struct _mt_ctx mt_ctx;
-typedef void (__stdcall *mt_worker_t)(ptr);
-typedef u32 (*mt_run_t)(mt_ctx*, mt_worker_t, ptr);
+typedef void (__stdcall *mt_client_worker_t)(ptr);
+typedef u32 (*mt_run_t)(mt_ctx*, mt_client_worker_t, ptr);
+// forward defines
 mt_ctx* mt_init(u32 num_threads);
 void mt_deinit(mt_ctx* ctx);
-u32 mt_run(mt_ctx* ctx, mt_worker_t worker, ptr param);
+u32 mt_run(mt_ctx* ctx, mt_client_worker_t worker, ptr param);
 
 // the bigol' context structure that holds function pointers
 // as well as the thread pool state
@@ -58,6 +68,11 @@ typedef struct _mt_ctx {
     FreeLibrary_t                       FreeLibrary;
     GlobalAlloc_t                       GlobalAlloc;
     GlobalFree_t                        GlobalFree;
+    GetLastError_t                      GetLastError;
+    QueryPerformanceCounter_t           QueryPerformanceCounter;
+    QueryPerformanceFrequency_t         QueryPerformanceFrequency;
+    GetLogicalProcessorInformation_t    GetLogicalProcessorInformation;
+    #if defined(_MULTITHREAD_MSPOOL_IMPL)
     InitializeThreadpoolEnvironment_t   InitializeThreadpoolEnvironment;
     CreateThreadpool_t                  CreateThreadpool;
     SetThreadpoolThreadMaximum_t        SetThreadpoolThreadMaximum;
@@ -67,12 +82,29 @@ typedef struct _mt_ctx {
     WaitForThreadpoolWorkCallbacks_t    WaitForThreadpoolWorkCallbacks;
     CloseThreadpoolWork_t               CloseThreadpoolWork;
     CloseThreadpool_t                   CloseThreadpool;
-    GetLogicalProcessorInformation_t    GetLogicalProcessorInformation;
-    GetLastError_t                      GetLastError;
-    QueryPerformanceCounter_t           QueryPerformanceCounter;
-    QueryPerformanceFrequency_t         QueryPerformanceFrequency;
     ptr                                 cbe;
     ptr                                 pool;
+    #elif defined(_MULTITHREAD_GOOD_IMPL)
+    CreateThread_t                      CreateThread;
+    WaitForSingleObject_t               WaitForSingleObject;
+    CreateEventA_t                      CreateEventA;
+    SetEvent_t                          SetEvent;
+    ResetEvent_t                        ResetEvent;
+    CloseHandle_t                       CloseHandle;
+    WaitForMultipleObjects_t            WaitForMultipleObjects;
+    ptr                                 hThreadsStart;                      // handle to a single event that starts all threads
+    ptr                                 hThreadsExit;                       // handle to a single event that causes all threads to exit
+                                                                            // NOTE: the threads expect these to be next to each
+                                                                            //       other in memory (yeah yeah, I know)
+    ptr                                 hThreadsReset;                      // handle to a single event that causes all threads 
+                                                                            // to reenter their initial wait state after they've finished
+    ptr*                                ahThreads;                          // array of handles to all threads
+    ptr*                                ahThreadsDone;                      // array of handles to all threads' done events
+    ptr                                 pThreadContexts;                    // a blob of thread contexts
+    mt_client_worker_t                  worker;                             // the worker function
+    ptr                                 param;                              // the parameter to pass to the worker function
+    u32                                 cnt_threads_ready;                  // number of threads that are about to enter their wait state
+    #endif
     u32                                 num_threads;
     mt_run_t                            mt_run;
 } mt_ctx;
