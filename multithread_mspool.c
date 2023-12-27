@@ -67,6 +67,7 @@ mt_ctx* mt_init(u32 num_threads) {
                 ctx->pool = ctx->CreateThreadpool(0);
                 if (ctx->pool) {
                     ctx->num_threads = num_threads ? num_threads : mt_get_cputhreads(ctx);
+                    ctx->thread_idx = 0;
                     ctx->SetThreadpoolThreadMaximum(ctx->pool, ctx->num_threads);
                     ctx->SetThreadpoolThreadMinimum(ctx->pool, ctx->num_threads);
                     ((mt_CallbackEnvironment*)(ctx->cbe))->pool = ctx->pool;
@@ -106,7 +107,7 @@ typedef struct {
 
 // worker wrapper for the simpler client thread
 static void __stdcall mt_work_callback(ptr instance, mt_thread_ctx* ctx, ptr work) {
-    ctx->worker_thread(ctx->param);
+    ctx->worker_thread(ctx->param, -1);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

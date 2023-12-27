@@ -52,7 +52,7 @@ typedef ptr (*GetProcAddress_t)(ptr, i8*);
 
 // define ptr types if someone's only including the .h
 typedef struct _mt_ctx mt_ctx;
-typedef void (__stdcall *mt_client_worker_t)(ptr);
+typedef void (__stdcall *mt_client_worker_t)(ptr, i32);
 typedef u32 (*mt_run_t)(mt_ctx*, mt_client_worker_t, ptr);
 // forward defines
 mt_ctx* mt_init(u32 num_threads);
@@ -92,19 +92,15 @@ typedef struct _mt_ctx {
     ResetEvent_t                        ResetEvent;
     CloseHandle_t                       CloseHandle;
     WaitForMultipleObjects_t            WaitForMultipleObjects;
-    ptr                                 hThreadsStart;                      // handle to a single event that starts all threads
-    ptr                                 hThreadsExit;                       // handle to a single event that causes all threads to exit
-                                                                            // NOTE: the threads expect these to be next to each
-                                                                            //       other in memory (yeah yeah, I know)
-    ptr                                 hThreadsReset;                      // handle to a single event that causes all threads 
-                                                                            // to reenter their initial wait state after they've finished
-    ptr*                                ahThreads;                          // array of handles to all threads
+    ptr*                                ahThreadsStart;                     // array of event handles that start the inividual threads
+    ptr                                 hThreadsExit;                       // a single manual-reset event that exits all threads
     ptr*                                ahThreadsDone;                      // array of handles to all threads' done events
+    ptr*                                ahThreads;                          // array of handles to all threads
     ptr                                 pThreadContexts;                    // a blob of thread contexts
     mt_client_worker_t                  worker;                             // the worker function
     ptr                                 param;                              // the parameter to pass to the worker function
-    u32                                 cnt_threads_ready;                  // number of threads that are about to enter their wait state
     #endif
     u32                                 num_threads;
+    i32                                 thread_idx;
     mt_run_t                            mt_run;
 } mt_ctx;
