@@ -6,6 +6,9 @@
                 "command": "C:\\msys64\\ucrt64\\bin\\gcc.exe",
                 "args": [
                     "-march=native",
+                    "-mtune=native",
+                    "-D",
+                    "_MULTITHREAD_GOOD_IMPL",
                     " -m64",
                     "-fdiagnostics-color=always",
                     "-g",

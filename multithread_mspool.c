@@ -3,11 +3,7 @@
     (C) 2023 https://github.com/martona/multithread
     MIT License
 */
-
 #if defined(_MULTITHREAD_MSPOOL_IMPL)
-#include "multithread.h"
-#include "submodules/getprocaddress/getprocaddress.c"
-#include "multithread_base.c"
 
 //-------------------------------------------------------------------------------------
 // data types required for mt_init
@@ -64,6 +60,7 @@ mt_ctx* mt_init(u32 num_threads) {
             ctx->CloseThreadpoolWork            = (CloseThreadpoolWork_t)           GetProcAddress(kernel32, "CloseThreadpoolWork");
             ctx->CloseThreadpool                = (CloseThreadpool_t)               GetProcAddress(kernel32, "CloseThreadpool");
             ctx->GetLogicalProcessorInformation = (GetLogicalProcessorInformation_t)GetProcAddress(kernel32, "GetLogicalProcessorInformation");
+            ctx->GetSystemCpuSetInformation     = (GetSystemCpuSetInformation_t)    GetProcAddress(kernel32, "GetSystemCpuSetInformation");
             ctx->GetLastError                   = (GetLastError_t)                  GetProcAddress(kernel32, "GetLastError");
             ctx->QueryPerformanceCounter        = (QueryPerformanceCounter_t)       GetProcAddress(kernel32, "QueryPerformanceCounter");
             ctx->QueryPerformanceFrequency      = (QueryPerformanceFrequency_t)     GetProcAddress(kernel32, "QueryPerformanceFrequency");
@@ -141,25 +138,4 @@ u32 mt_run(mt_ctx* ctx, mt_client_worker_t worker, ptr param) {
     return 0;
 }
 
-#if _MULTITHREAD_DEBUG
-void __stdcall testworker(ptr param) {
-    mt_ctx *ctx = (mt_ctx*)param;
-    u64 now, freq;
-    ctx->QueryPerformanceCounter(&now);
-    ctx->QueryPerformanceFrequency(&freq);
-    now = now * 10000000 / freq;
-    printf("%llu\n", now);
-}
-
-int main() {
-    mt_ctx* ctx = mt_init(0);
-    if (ctx) {
-        for (int i=0; i<5; i++) {
-            mt_run(ctx, testworker, ctx);
-        }
-        mt_deinit(ctx);
-    }
-    return 0;
-}
-#endif
 #endif //_MULTITHREAD_MSPOOL_IMPL

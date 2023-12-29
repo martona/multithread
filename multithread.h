@@ -51,6 +51,7 @@ typedef u32 (*SetEvent_t)(ptr);
 typedef u32 (*ResetEvent_t)(ptr);
 typedef u32 (*CloseHandle_t)(ptr);
 typedef u32 (*WaitForMultipleObjects_t)(u32, ptr, u32, u32);
+typedef u32 (*GetSystemCpuSetInformation_t)(ptr, u32, ptr, u32, ptr);
 
 #if !defined(GetProcAddress_t_defined)
 typedef ptr (*GetProcAddress_t)(ptr, i8*);
@@ -64,6 +65,7 @@ typedef u32 (*mt_run_t)(mt_ctx*, mt_client_worker_t, ptr);
 mt_ctx* mt_init(u32 num_threads);
 void mt_deinit(mt_ctx* ctx);
 u32 mt_run(mt_ctx* ctx, mt_client_worker_t worker, ptr param);
+int mt_get_cputhreads(mt_ctx* ctx);
 
 // the bigol' context structure that holds function pointers
 // as well as the thread pool state
@@ -78,6 +80,7 @@ typedef struct _mt_ctx {
     QueryPerformanceCounter_t           QueryPerformanceCounter;
     QueryPerformanceFrequency_t         QueryPerformanceFrequency;
     GetLogicalProcessorInformation_t    GetLogicalProcessorInformation;
+    GetSystemCpuSetInformation_t        GetSystemCpuSetInformation;
     #if defined(_MULTITHREAD_MSPOOL_IMPL)
     InitializeThreadpoolEnvironment_t   InitializeThreadpoolEnvironment;
     CreateThreadpool_t                  CreateThreadpool;
